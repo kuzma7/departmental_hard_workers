@@ -25,8 +25,8 @@ load_by_position = {
 }
 
 # Ключевые слова для поиска
-keywords_assistant = ['лекция', 'лекции', 'курсовая', 'курсовые', 'экзамены']
-keywords_senior_lecturer = ['практика', 'практическое занятие']
+keywords_assistant = ['лекция', 'лекции', 'курсовая', 'курсовые', 'экзамен']
+keywords_senior_lecturer = ['курсовые', 'курсовая']
 
 # Цвет для подсветки
 highlight_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
@@ -74,6 +74,18 @@ combined_df = pd.DataFrame(combined_rows)
 combined_df.to_excel(target_file, index=False, header=False, freeze_panes=(1, 0))
 logging.info(f"Данные успешно записаны в файл '{target_file}'.")
 
+
+def get_senior_keywords() -> list[int]:
+    keyword_columns = []
+    for col_idx, cell in enumerate(sheet[1], start=1):
+        if isinstance(cell.value, str) and any(
+                keyword in cell.value.lower() for keyword in keywords_senior_lecturer):
+            keyword_columns.append(col_idx)
+            logging.info(f"Столбец {col_idx} содержит ключевое слово: {cell.value}")
+
+    return keyword_columns
+
+
 # Подсветка ячеек в итоговом файле
 try:
     workbook = load_workbook(target_file)
@@ -87,11 +99,18 @@ try:
             keyword_columns.append(col_idx)
             logging.info(f"Столбец {col_idx} содержит ключевое слово: {cell.value}")
 
+    print(keyword_columns)
+
     # Проходим по строкам и подсвечиваем ячейки
     for row_idx in range(2, sheet.max_row + 1):  # Пропускаем заголовок
         position = sheet.cell(row=row_idx, column=2).value  # Предполагается, что "Должность" во втором столбце
-        if position in ['Ассистент', 'Старший преподаватель']:
+        if position in ['Ассистент']:
             for col_idx in keyword_columns:
+                cell = sheet.cell(row=row_idx, column=col_idx)
+                cell.fill = highlight_fill
+                logging.info(f"Закрашиваем ячейку: строка {row_idx}, столбец {col_idx}")
+        elif position in ['Старший преподаватель']:
+            for col_idx in get_senior_keywords():
                 cell = sheet.cell(row=row_idx, column=col_idx)
                 cell.fill = highlight_fill
                 logging.info(f"Закрашиваем ячейку: строка {row_idx}, столбец {col_idx}")
